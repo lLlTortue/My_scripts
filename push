@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cat coding-style-reports.log
+cat coding-style-reports.log 2> /dev/null
 find -name "a.out" -delete -o -name "coding-style-reports.log" -delete
 mr_clean
 if grep -E -n "stdio.h|printf|main|my_putchar|  " *.c --color 2> /dev/null; then
