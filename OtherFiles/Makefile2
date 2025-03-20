@@ -1,0 +1,101 @@
+SRC     := $(wildcard src/*.c)
+BUILD_DIR := build
+OBJS    := $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
+
+CFLAGS  := -Wall -Wextra -Werror -I./include
+OFLAGS  := -I./include -Wall -Wextra -Werror
+
+DEBUG   := 0
+
+ifeq ($(DEBUG), 1)
+	CFLAGS += -fsanitize=address
+	OFLAGS += -g3
+endif
+
+LIBS_DIR := libs
+LIBS_DIRS := $(shell [ -d $(LIBS_DIR) ] && find $(LIBS_DIR)/* \
+-maxdepth 0 -type d 2>/dev/null || echo "")
+LIBS    := $(wildcard $(LIBS_DIRS:%=%/*.a))
+
+LIB_TIMESTAMP := $(BUILD_DIR)/libs.timestamp
+
+LDFLAGS := $(addprefix -L, $(LIBS_DIRS))
+LDLIBS := $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS))))
+
+MAKEFLAGS += --no-print-directory
+
+SILENT := $(findstring s,$(word 1, $(MAKEFLAGS)))
+
+all: $(NAME)
+
+$(NAME): $(OBJS) $(LIB_TIMESTAMP)
+	ar rcs lib$(NAME).a $(OBJS)
+
+debug:
+	@$(MAKE) DEBUG=1 run
+
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	gcc $(OFLAGS) -c $< -o $@
+
+clean:
+	@if [ "$(SILENT)" != "s" ]; then echo "Cleaning build..."; fi
+	rm -rf $(BUILD_DIR)
+	@for dir in $(LIBS_DIRS); do \
+		$(MAKE) --silent -C $$dir clean; \
+	done
+
+fclean: clean
+	@if [ "$(SILENT)" != "s" ]; then echo "Performing full clean..."; fi
+	rm -f lib$(NAME).a $(NAME)
+	@for dir in $(LIBS_DIRS); do \
+		$(MAKE) --silent -C $$dir fclean; \
+	done
+
+$(LIB_TIMESTAMP): $(LIBS_DIRS)
+	@if [ "$(SILENT)" != "s" ]; then echo "Checking libraries..."; fi
+	@if [ -z "$(LIBS_DIRS)" ]; then \
+	    if [ "$(SILENT)" != "s" ]; then \
+			echo "No library directories were found."; \
+		fi; \
+	else \
+	    for dir in $(LIBS_DIRS); do \
+			lib=$$(find $$dir -name '*.a' | head -n 1); \
+			if [ -z "$$lib" ]; then \
+			    if [ "$(SILENT)" != "s" ]; then \
+					echo -n "Building library in $$dir... "; \
+				fi; \
+				$(MAKE) --silent -C $$dir; \
+				if [ "$(SILENT)" != "s" ]; then echo "Done"; fi; \
+			else \
+			    if [ "$(SILENT)" != "s" ]; then \
+					echo "Library already exists in $$dir, skipping."; \
+				fi; \
+			fi; \
+	    done; \
+	fi;
+	@touch $(LIB_TIMESTAMP)
+
+re: fclean all
+
+run: re
+	@if [ -f "main.c" ]; then \
+		if [ -f "lib$(NAME).a" ]; then \
+			$(eval LIBS    := $(wildcard $(LIBS_DIRS:%=%/*.a))) \
+			$(eval LDFLAGS := $(addprefix -L, $(LIBS_DIRS))) \
+			$(eval LDLIBS  := $(addprefix -l, \
+			    $(patsubst lib%.a,%,$(notdir $(LIBS))))) \
+			gcc main.c -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LDLIBS) \
+			    -L. -l$(NAME);\
+			if [ "$(SILENT)" != "s" ]; then echo "Running $(NAME)..."; fi; \
+			./$(NAME); \
+		else \
+			if [ "$(SILENT)" != "s" ]; then \
+			    echo "Library $(NAME) not found!"; \
+			fi; \
+		fi; \
+	else \
+		if [ "$(SILENT)" != "s" ]; then \
+		    echo "No main.c file found in the root directory."; \
+		fi; \
+	fi;

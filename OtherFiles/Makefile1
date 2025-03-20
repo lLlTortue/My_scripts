@@ -1,0 +1,89 @@
+SRC = $(wildcard src/*.c) main.c
+
+BUILD_DIR = build
+OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
+
+CFLAGS = -Wall -Wextra -Werror
+OFLAGS = -I./include -Wall -Wextra
+
+DEBUG = 0
+
+ifeq ($(DEBUG), 1)
+	CFLAGS += -fsanitize=address
+	OFLAGS += -g3
+endif
+
+LIBS_DIR = libs
+LIBS_DIRS = $(shell [ -d $(LIBS_DIR) ] && find $(LIBS_DIR)/* \
+-maxdepth 0 -type d 2>/dev/null || echo "")
+LIBS = $(wildcard $(LIBS_DIRS:%=%/*.a))
+
+LIB_TIMESTAMP = $(BUILD_DIR)/libs.timestamp
+
+LDFLAGS = $(addprefix -L, $(LIBS_DIRS))  # Ajoute le chemin des librairies
+LDLIBS = $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS))))
+
+MAKEFLAGS += --no-print-directory
+
+SILENT := $(findstring s,$(word 1, $(MAKEFLAGS)))
+
+all: $(NAME)
+
+$(NAME): $(OBJS) $(LIB_TIMESTAMP)
+	@if [ "$(SILENT)" = "" ]; then echo "Linking $(NAME)..."; fi
+	gcc $(OBJS) -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LDLIBS)
+
+debug:
+	@$(MAKE) DEBUG=1 run
+
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@if [ "$(SILENT)" = "" ]; then echo "Compiling $<"; fi
+	gcc $(OFLAGS) -c $< -o $@
+
+clean:
+	@rm -rf $(BUILD_DIR)
+	@for dir in $(LIBS_DIRS); do \
+		if [ "$(SILENT)" = "" ]; then echo "Cleaning $$dir..."; fi; \
+		$(MAKE) --silent -C $$dir clean; \
+	done
+
+fclean: clean
+	rm -f $(NAME)
+	@for dir in $(LIBS_DIRS); do \
+		$(MAKE) --silent -C $$dir fclean; \
+	done
+
+$(LIB_TIMESTAMP): $(LIBS_DIRS)
+	@if [ "$(SILENT)" = "" ]; then echo "Checking libraries..."; fi
+	@if [ -z "$(LIBS_DIRS)" ]; then \
+	    echo "No library directories were found."; \
+	else \
+	    for dir in $(LIBS_DIRS); do \
+			lib=$$(find $$dir -name '*.a' | head -n 1); \
+			if [ -z "$$lib" ]; then \
+			    if [ "$(SILENT)" = "" ]; then \
+					echo -n "Building library in $$dir... "; \
+				fi; \
+				$(MAKE) --silent -C $$dir; \
+				if [ "$(SILENT)" = "" ]; then echo "Done"; fi; \
+			else \
+			    if [ "$(SILENT)" = "" ]; then \
+					echo "Library already exists in $$dir, skipping."; \
+				fi; \
+			fi; \
+	    done; \
+	fi;
+	@touch $(LIB_TIMESTAMP)
+
+re: fclean all
+
+run: re
+	@if [ -f "$(NAME)" ]; then \
+		./$(NAME); \
+		if [ "$(SILENT)" = "" ]; then echo "Running..."; fi; \
+	else \
+		if [ "$(SILENT)" = "" ]; then \
+	        echo "Executable $(NAME) not found!"; \
+		fi; \
+	fi;

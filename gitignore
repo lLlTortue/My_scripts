@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ $1 ]; then
+    echo $1 > .gitignore
+    echo "a.out" >> .gitignore
+else
+    echo "a.out" > .gitignore
+fi
+
+echo ".clang-format" >> .gitignore
+echo "coding-style-reports.log" >> .gitignore
+echo "build" >> .gitignore
+echo "vgcore.*" >> .gitignore
+echo ".project_name.txt" >> .gitignore

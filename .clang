@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cp /home/l/my_scripts/OtherFiles/.clang-format .

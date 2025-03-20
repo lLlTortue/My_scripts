@@ -1,0 +1,20 @@
+#!/bin/bash
+
+libs=($(find /home/icemoondev/libs/* -maxdepth 0 -type d))
+echo "You can add some libraries."
+
+n=1
+
+while [[ " ${!libs[@]} " =~ " $((n - 1)) " ]]; do
+    for i in ${!libs[@]}; do
+        echo " [$(($i + 1))] > lib ${libs[i]##*/}"
+    done
+
+    read -p "Enter a single number (0 for exit):" n
+    if [[ " ${!libs[@]} " =~ " $((n - 1)) " ]]; then
+        mkdir -p libs
+        cp -r ${libs[((n - 1))]} ./libs/${libs[((n - 1))]##*/}
+        cp ./libs/${libs[((n - 1))]##*/}/include/${libs[((n - 1))]##*/}.h ./include
+        echo "Lib ${libs[((n - 1))]##*/} added."
+    fi
+done

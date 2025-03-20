@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ $1 ]; then
+    project_name=$1
+else
+    read -p "Project name : " project_name
+fi
+
+if [[ $project_name == *".c" ]]; then
+    echo $project_name > .project_name.txt
+
+    Cnew main $project_name
+
+    mkdir -p src
+    cd src
+    Cnew ${project_name%.*} $project_name
+    cd ..
+
+    Makenew $project_name
+
+    mkdir -p include
+    cd include
+    Hnew my $project_name
+    cd ..
+
+    .clang
+    gitignore ${project_name%.*}
+
+    add_libs
+fi

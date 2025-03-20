@@ -1,0 +1,15 @@
+.c or .h files :
+/*
+** EPITECH PROJECT, 2024
+** [ project ]
+** File description:
+** [ description ]
+*/
+
+Makefiles :
+##
+## EPITECH PROJECT, 2024
+## [ project ]
+## File description:
+## [ description ]
+##

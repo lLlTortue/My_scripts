@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [ $2 ]; then
+    project_name=$2
+elif find .. -name .project_name.txt | grep "./.project_name.txt" > cnew.log; then
+    project_name=$(cat ../.project_name.txt)
+else
+    read -p "Project name : " project_name
+fi
+
+echo "/*" > $1.h
+echo "** EPITECH PROJECT, 2024" >> $1.h
+echo "** $project_name" >> $1.h
+echo "** File description:" >> $1.h
+echo "** $1.h" >> $1.h
+echo "*/" >> $1.h
+echo >> $1.h
+
+uppercase=${1^^}
+echo "#ifndef ${uppercase}_H_" >> $1.h
+echo "    #define ${uppercase}_H_" >> $1.h
+echo >> $1.h
+
+if [ $2 ]; then
+    echo "int ${project_name%.c}(void);" >> $1.h
+    echo >> $1.h
+fi
+
+echo "#endif" >> $1.h
+
+rm -f cnew.log
