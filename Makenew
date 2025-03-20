@@ -19,7 +19,7 @@ echo >> Makefile
 echo   "NAME    :=  ${project_name%.*}" >> Makefile
 
 if [[ $project_name == *".c" ]]; then
-    cat /home/l/my_scripts/OtherFiles/Makefile1 >> Makefile
+    cat /home/l/My_scripts/OtherFiles/Makefile1 >> Makefile
 elif [[ $project_name == *".a" ]]; then
-    cat /home/l/my_scripts/OtherFiles/Makefile2 >> Makefile
+    cat /home/l/My_scripts/OtherFiles/Makefile2 >> Makefile
 fi
