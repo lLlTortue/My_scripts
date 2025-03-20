@@ -2,7 +2,7 @@
 
 if [ $2 ]; then
     project_name=$2
-elif find ../.project_name.txt | grep ".project_name.txt" > cnew.log; then
+elif find ../.project_name.txt | grep ".project_name.txt" > /dev/null; then
     project_name=$(cat ../.project_name.txt)
 else
     read -p "Project name : " project_name
@@ -16,11 +16,7 @@ echo "** $1.c" >> $1.c
 echo "*/" >> $1.c
 echo >> $1.c
 
-if [ "$1" == "main" ]; then
-    echo "#include \"include/my.h\"" >> $1.c
-else
-    echo "#include \"../include/my.h\"" >> $1.c
-fi
+echo '#include "my.h"' >> $1.c
 echo >> $1.c
 
 echo "int $1(void)" >> $1.c
@@ -30,5 +26,3 @@ if [ "$1" == "main" ]; then
 fi
 echo "    return 0;" >> $1.c
 echo "}" >> $1.c
-
-rm -f cnew.log

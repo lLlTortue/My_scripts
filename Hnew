@@ -2,7 +2,7 @@
 
 if [ $2 ]; then
     project_name=$2
-elif find .. -name .project_name.txt | grep "./.project_name.txt" > cnew.log; then
+elif find .. -name .project_name.txt | grep "./.project_name.txt" > /dev/null; then
     project_name=$(cat ../.project_name.txt)
 else
     read -p "Project name : " project_name
@@ -27,5 +27,3 @@ if [ $2 ]; then
 fi
 
 echo "#endif" >> $1.h
-
-rm -f cnew.log

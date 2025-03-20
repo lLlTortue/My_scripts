@@ -1,6 +1,6 @@
-SRC     := $(wildcard src/*.c)
+SRC     := $(shell find src -name "*.c")
 BUILD_DIR := build
-OBJS    := $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
+OBJS    := $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 CFLAGS  := -Wall -Wextra -Werror -I./include
 OFLAGS  := -I./include -Wall -Wextra -Werror
@@ -24,8 +24,6 @@ LDLIBS := $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS))))
 
 MAKEFLAGS += --no-print-directory
 
-SILENT := $(findstring s,$(word 1, $(MAKEFLAGS)))
-
 all: $(NAME)
 
 $(NAME): $(OBJS) $(LIB_TIMESTAMP)
@@ -39,38 +37,30 @@ $(BUILD_DIR)/%.o: %.c
 	gcc $(OFLAGS) -c $< -o $@
 
 clean:
-	@if [ "$(SILENT)" != "s" ]; then echo "Cleaning build..."; fi
 	rm -rf $(BUILD_DIR)
 	@for dir in $(LIBS_DIRS); do \
-		$(MAKE) --silent -C $$dir clean; \
+		$(MAKE) -C $$dir clean; \
 	done
 
 fclean: clean
-	@if [ "$(SILENT)" != "s" ]; then echo "Performing full clean..."; fi
 	rm -f lib$(NAME).a $(NAME)
 	@for dir in $(LIBS_DIRS); do \
-		$(MAKE) --silent -C $$dir fclean; \
+		$(MAKE) -C $$dir fclean; \
 	done
 
 $(LIB_TIMESTAMP): $(LIBS_DIRS)
-	@if [ "$(SILENT)" != "s" ]; then echo "Checking libraries..."; fi
+	@echo "Checking libraries..."
 	@if [ -z "$(LIBS_DIRS)" ]; then \
-	    if [ "$(SILENT)" != "s" ]; then \
-			echo "No library directories were found."; \
-		fi; \
+		echo "No library directories were found."; \
 	else \
 	    for dir in $(LIBS_DIRS); do \
 			lib=$$(find $$dir -name '*.a' | head -n 1); \
 			if [ -z "$$lib" ]; then \
-			    if [ "$(SILENT)" != "s" ]; then \
-					echo -n "Building library in $$dir... "; \
-				fi; \
-				$(MAKE) --silent -C $$dir; \
-				if [ "$(SILENT)" != "s" ]; then echo "Done"; fi; \
+				echo "Building library in $$dir... "; \
+				$(MAKE) -C $$dir; \
+				echo "Done"; \
 			else \
-			    if [ "$(SILENT)" != "s" ]; then \
-					echo "Library already exists in $$dir, skipping."; \
-				fi; \
+				echo "Library already exists in $$dir, skipping."; \
 			fi; \
 	    done; \
 	fi;
@@ -87,15 +77,11 @@ run: re
 			    $(patsubst lib%.a,%,$(notdir $(LIBS))))) \
 			gcc main.c -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LDLIBS) \
 			    -L. -l$(NAME);\
-			if [ "$(SILENT)" != "s" ]; then echo "Running $(NAME)..."; fi; \
+			echo "Running $(NAME)..."; \
 			./$(NAME); \
 		else \
-			if [ "$(SILENT)" != "s" ]; then \
-			    echo "Library $(NAME) not found!"; \
-			fi; \
+			echo "Library $(NAME) not found!"; \
 		fi; \
 	else \
-		if [ "$(SILENT)" != "s" ]; then \
-		    echo "No main.c file found in the root directory."; \
-		fi; \
+		echo "No main.c file found in the root directory."; \
 	fi;

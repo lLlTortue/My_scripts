@@ -1,7 +1,7 @@
-SRC = $(wildcard src/*.c) main.c
+SRC = $(shell find src -name "*.c") main.c
 
 BUILD_DIR = build
-OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
+OBJS = $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 CFLAGS = -Wall -Wextra -Werror
 OFLAGS = -I./include -Wall -Wextra
@@ -30,7 +30,6 @@ SILENT := $(findstring s,$(word 1, $(MAKEFLAGS)))
 all: $(NAME)
 
 $(NAME): $(OBJS) $(LIB_TIMESTAMP)
-	@if [ "$(SILENT)" = "" ]; then echo "Linking $(NAME)..."; fi
 	gcc $(OBJS) -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LDLIBS)
 
 debug:
@@ -38,39 +37,32 @@ debug:
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	@if [ "$(SILENT)" = "" ]; then echo "Compiling $<"; fi
 	gcc $(OFLAGS) -c $< -o $@
 
 clean:
 	@rm -rf $(BUILD_DIR)
 	@for dir in $(LIBS_DIRS); do \
-		if [ "$(SILENT)" = "" ]; then echo "Cleaning $$dir..."; fi; \
-		$(MAKE) --silent -C $$dir clean; \
+		$(MAKE) -C $$dir clean; \
 	done
 
 fclean: clean
 	rm -f $(NAME)
 	@for dir in $(LIBS_DIRS); do \
-		$(MAKE) --silent -C $$dir fclean; \
+		$(MAKE) -C $$dir fclean; \
 	done
 
 $(LIB_TIMESTAMP): $(LIBS_DIRS)
-	@if [ "$(SILENT)" = "" ]; then echo "Checking libraries..."; fi
+	@echo "Checking libraries..."
 	@if [ -z "$(LIBS_DIRS)" ]; then \
 	    echo "No library directories were found."; \
 	else \
 	    for dir in $(LIBS_DIRS); do \
 			lib=$$(find $$dir -name '*.a' | head -n 1); \
 			if [ -z "$$lib" ]; then \
-			    if [ "$(SILENT)" = "" ]; then \
-					echo -n "Building library in $$dir... "; \
-				fi; \
-				$(MAKE) --silent -C $$dir; \
-				if [ "$(SILENT)" = "" ]; then echo "Done"; fi; \
+				echo -n "Building library in $$dir... "; \
+				$(MAKE) -C $$dir; \
 			else \
-			    if [ "$(SILENT)" = "" ]; then \
-					echo "Library already exists in $$dir, skipping."; \
-				fi; \
+				echo "Library already exists in $$dir, skipping."; \
 			fi; \
 	    done; \
 	fi;
@@ -80,10 +72,8 @@ re: fclean all
 
 run: re
 	@if [ -f "$(NAME)" ]; then \
+	    echo "Running..."; \
 		./$(NAME); \
-		if [ "$(SILENT)" = "" ]; then echo "Running..."; fi; \
 	else \
-		if [ "$(SILENT)" = "" ]; then \
-	        echo "Executable $(NAME) not found!"; \
-		fi; \
+	    echo "Executable $(NAME) not found!"; \
 	fi;

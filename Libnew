@@ -25,7 +25,6 @@ if [[ $lib_name == *".a" ]]; then
     cd ..
 
     .clang
-    gitignore ${project_name%.*}
 
     add_libs
 fi
