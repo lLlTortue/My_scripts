@@ -1,6 +1,6 @@
 #!/bin/bash
 
-libs=($(find /home/icemoondev/libs/* -maxdepth 0 -type d))
+libs=($(find /home/l/Libs/* -maxdepth 0 -type d))
 echo "You can add some libraries."
 
 n=1
