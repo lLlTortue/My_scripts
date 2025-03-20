@@ -2,7 +2,7 @@
 
 if [ $1 ]; then
     project_name=$1
-elif find .. -name .project_name.txt | grep ".project_name.txt" > cnew.log; then
+elif find .. -name .project_name.txt | grep ".project_name.txt" > /dev/null; then
     project_name=$(cat .project_name.txt)
 else
     read -p "Project name : " project_name
@@ -19,7 +19,7 @@ echo >> Makefile
 echo   "NAME    :=  ${project_name%.*}" >> Makefile
 
 if [[ $project_name == *".c" ]]; then
-    cat /home/icemoondev/my_scripts/OtherFiles/Makefile1 >> Makefile
+    cat /home/l/my_scripts/OtherFiles/Makefile1 >> Makefile
 elif [[ $project_name == *".a" ]]; then
-    cat /home/icemoondev/my_scripts/OtherFiles/Makefile2 >> Makefile
+    cat /home/l/my_scripts/OtherFiles/Makefile2 >> Makefile
 fi
