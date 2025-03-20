@@ -3,7 +3,7 @@
 cat coding-style-reports.log
 find -name "a.out" -delete -o -name "coding-style-reports.log" -delete
 mr_clean
-if grep -E -n "stdio.h|printf|main|my_putchar|  " *.c --color; then
+if grep -E -n "stdio.h|printf|main|my_putchar|  " *.c --color 2> /dev/null; then
     read -p "Do you want to continue anyway ? " answer
     if [[ $answer != "y" ]]; then
         exit 1;
