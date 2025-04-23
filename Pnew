@@ -27,4 +27,6 @@ if [[ $project_name == *".c" ]]; then
     gitignore ${project_name%.*}
 
     add_libs
+
+    bear -- make
 fi

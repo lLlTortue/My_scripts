@@ -22,8 +22,6 @@ LIB_TIMESTAMP := $(BUILD_DIR)/libs.timestamp
 LDFLAGS := $(addprefix -L, $(LIBS_DIRS))
 LDLIBS := $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS))))
 
-MAKEFLAGS += --no-print-directory
-
 all: $(NAME)
 
 $(NAME): $(OBJS) $(LIB_TIMESTAMP)

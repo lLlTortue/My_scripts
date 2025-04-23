@@ -10,7 +10,7 @@ while [[ " ${!libs[@]} " =~ " $((n - 1)) " ]]; do
         echo " [$(($i + 1))] > lib ${libs[i]##*/}"
     done
 
-    read -p "Enter a single number (0 for exit):" n
+    read -p "Enter a single number (0 for exit): " n
     if [[ " ${!libs[@]} " =~ " $((n - 1)) " ]]; then
         mkdir -p libs
         cp -r ${libs[((n - 1))]} ./libs/${libs[((n - 1))]##*/}
