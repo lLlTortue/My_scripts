@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+# Remove all BASH_FUNC_ variables
+cleaned_env = {k: v for k, v in os.environ.items() if not k.startswith('BASH_FUNC_')}
+
+# Execute real edex-ui with cleaned environment
+os.execvpe('/usr/bin/edex-ui', ['/usr/bin/edex-ui'] + sys.argv[1:], cleaned_env)
