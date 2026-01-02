@@ -1,0 +1,256 @@
+#!/bin/bash
+
+# ============================================================================
+# Hyprland Gaming Mode Script (Updated for Hyprland 0.53 - Dec 2025)
+# Optimized for Intel Arc A370M + Iris Xe hybrid graphics
+# ============================================================================
+
+GAMING_STATE_FILE="$HOME/.cache/hyprland-gaming-mode"
+NOTIFY_CMD="notify-send"
+
+# Couleurs pour le terminal
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Fonction de notification
+notify() {
+    local title="$1"
+    local message="$2"
+    local urgency="${3:-normal}"
+
+    $NOTIFY_CMD -u "$urgency" "🎮 Gaming Mode" "$message"
+    echo -e "${GREEN}[Gaming Mode]${NC} $message"
+}
+
+# Fonction pour vérifier si le mode gaming est actif
+is_gaming_mode_active() {
+    [ -f "$GAMING_STATE_FILE" ]
+}
+
+# ============================================================================
+# MODE GAMING ON
+# ============================================================================
+enable_gaming_mode() {
+    notify "Activation" "Optimisation en cours..." "normal"
+
+    # === PERFORMANCES VISUELLES ===
+    # Désactiver les effets gourmands (Hyprland 0.53 syntax)
+    # Note: blur non touché (désactivé par l'utilisateur par défaut)
+    hyprctl keyword decoration:shadow:enabled false
+    hyprctl keyword decoration:dim_inactive false
+
+    # Réduire les animations au minimum
+    hyprctl keyword animations:enabled false
+    # Ou si vous voulez garder des animations minimes :
+    # hyprctl keyword "animation:windows,1,1,default"
+    # hyprctl keyword "animation:fade,1,1,default"
+    # hyprctl keyword "animation:workspaces,1,1,default"
+
+    # === RENDER OPTIMIZATIONS (Hyprland 0.50+) ===
+    # VFR pour économiser les ressources
+    hyprctl keyword misc:vfr true
+
+    # VRR pour synchronisation adaptive (si votre écran supporte)
+    hyprctl keyword misc:vrr 1
+
+    # Direct scanout pour meilleure latence (option supprimée dans 0.53)
+    # hyprctl keyword misc:no_direct_scanout false
+
+    # === NOUVELLES OPTIONS HYPRLAND 0.53 ===
+    # Fullscreen behavior optimisé
+    hyprctl keyword misc:on_focus_under_fullscreen 0
+
+    # === CPU GOVERNOR ===
+    # Passer en mode performance
+    if command -v cpupower &> /dev/null; then
+        echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null 2>&1
+        notify "CPU" "Governor: Performance" "low"
+    fi
+
+    # === GPU OPTIMIZATIONS ===
+    # Intel Arc A370M: Forcer utilisation maximale
+    echo 1 | sudo tee /sys/class/drm/card1/gt_boost_freq_mhz > /dev/null 2>&1 || true
+
+    # === TUER PROCESSUS INUTILES ===
+    notify "Processus" "Nettoyage des applications gourmandes..." "low"
+
+    # Liste des processus à tuer (personnalisable)
+    killall -q discord 2>/dev/null
+    killall -q thunderbird 2>/dev/null
+    killall -q spotify 2>/dev/null
+    killall -q teams 2>/dev/null
+    killall -q slack 2>/dev/null
+
+    # Arrêter les services non-essentiels
+    systemctl --user stop arch-update.timer 2>/dev/null
+
+    # === PRIORITÉS SYSTÈME ===
+    # Augmenter la priorité des processus Steam/Gaming
+    if pgrep -x steam > /dev/null; then
+        renice -n -10 -p $(pgrep -x steam) 2>/dev/null
+    fi
+
+    # === SWAPPINESS ===
+    # Réduire l'utilisation du swap pendant le gaming
+    echo 10 | sudo tee /proc/sys/vm/swappiness > /dev/null 2>&1
+
+    # === VARIABLES D'ENVIRONNEMENT ===
+    # Ces variables sont déjà définies globalement normalement,
+    # mais on les force ici au cas où
+    export DRI_PRIME=1
+    export DXVK_ASYNC=1
+    export __GL_THREADED_OPTIMIZATIONS=1
+    export mesa_glthread=true
+
+    # === EMPÊCHER LE SUSPEND/IDLE ===
+    # Désactiver hypridle temporairement
+    pkill -STOP hypridle 2>/dev/null
+
+    # Inhiber le suspend système
+    systemd-inhibit --what=idle:sleep --who="Gaming Mode" --why="Gaming session active" sleep infinity &
+    INHIBIT_PID=$!
+    echo "$INHIBIT_PID" > "$HOME/.cache/hyprland-gaming-inhibit-pid"
+
+    # === OPTIMISATIONS RÉSEAU (optionnel) ===
+    # Réduire la latence réseau pour le gaming en ligne
+    if command -v ethtool &> /dev/null; then
+        # Interface réseau (à adapter selon votre config)
+        IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+        sudo ethtool -C "$IFACE" rx-usecs 0 tx-usecs 0 2>/dev/null || true
+    fi
+
+    # === MARQUER L'ÉTAT ===
+    touch "$GAMING_STATE_FILE"
+    echo "$(date +%s)" > "$GAMING_STATE_FILE"
+
+    # === NOTIFICATION FINALE ===
+    notify "✅ Activé" "Mode Gaming actif ! Performances maximales." "normal"
+
+    # Afficher les stats GPU
+    if command -v intel_gpu_top &> /dev/null; then
+        notify "GPU" "Arc A370M prêt. Utilisez 'sudo intel_gpu_top' pour monitorer." "low"
+    fi
+}
+
+# ============================================================================
+# MODE GAMING OFF
+# ============================================================================
+disable_gaming_mode() {
+    notify "Désactivation" "Restauration de la configuration normale..." "normal"
+
+    # === RESTAURER LES EFFETS VISUELS ===
+    # Note: blur non touché (toujours désactivé par l'utilisateur)
+    hyprctl keyword decoration:shadow:enabled true
+    hyprctl keyword decoration:dim_inactive true
+
+    # Réactiver les animations
+    hyprctl keyword animations:enabled true
+
+    # === RESTAURER VFR/VRR ===
+    hyprctl keyword misc:vfr true
+    hyprctl keyword misc:vrr 2  # Auto
+    # Direct scanout (option supprimée dans 0.53)
+    # hyprctl keyword misc:no_direct_scanout true
+
+    # === CPU GOVERNOR ===
+    # Retour en mode powersave/schedutil
+    if command -v cpupower &> /dev/null; then
+        echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null 2>&1
+        notify "CPU" "Governor: Powersave (économie d'énergie)" "low"
+    fi
+
+    # === SWAPPINESS ===
+    # Restaurer swappiness par défaut
+    echo 60 | sudo tee /proc/sys/vm/swappiness > /dev/null 2>&1
+
+    # === RÉACTIVER IDLE/SUSPEND ===
+    # Réactiver hypridle
+    pkill -CONT hypridle 2>/dev/null
+
+    # Tuer le processus d'inhibition
+    if [ -f "$HOME/.cache/hyprland-gaming-inhibit-pid" ]; then
+        kill $(cat "$HOME/.cache/hyprland-gaming-inhibit-pid") 2>/dev/null
+        rm "$HOME/.cache/hyprland-gaming-inhibit-pid"
+    fi
+
+    # === REDÉMARRER SERVICES ===
+    systemctl --user start arch-update.timer 2>/dev/null
+
+    # === SUPPRIMER L'ÉTAT ===
+    rm -f "$GAMING_STATE_FILE"
+
+    # === NOTIFICATION FINALE ===
+    notify "✅ Désactivé" "Configuration normale restaurée." "normal"
+}
+
+# ============================================================================
+# TOGGLE MODE
+# ============================================================================
+toggle_gaming_mode() {
+    if is_gaming_mode_active; then
+        disable_gaming_mode
+    else
+        enable_gaming_mode
+    fi
+}
+
+# ============================================================================
+# STATUS MODE
+# ============================================================================
+status_gaming_mode() {
+    if is_gaming_mode_active; then
+        START_TIME=$(cat "$GAMING_STATE_FILE")
+        CURRENT_TIME=$(date +%s)
+        DURATION=$((CURRENT_TIME - START_TIME))
+        HOURS=$((DURATION / 3600))
+        MINUTES=$(((DURATION % 3600) / 60))
+
+        echo -e "${GREEN}🎮 Mode Gaming: ACTIF${NC}"
+        echo -e "   Durée: ${HOURS}h ${MINUTES}m"
+
+        # Afficher l'utilisation GPU si possible
+        if [ -f /sys/class/drm/card1/device/gpu_busy_percent ]; then
+            GPU_USAGE=$(cat /sys/class/drm/card1/device/gpu_busy_percent 2>/dev/null || echo "N/A")
+            echo -e "   GPU Arc A370M: ${GPU_USAGE}%"
+        fi
+    else
+        echo -e "${YELLOW}🎮 Mode Gaming: INACTIF${NC}"
+    fi
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
+case "${1:-toggle}" in
+    on|enable)
+        if is_gaming_mode_active; then
+            echo -e "${YELLOW}Mode Gaming déjà actif${NC}"
+            exit 0
+        fi
+        enable_gaming_mode
+        ;;
+    off|disable)
+        if ! is_gaming_mode_active; then
+            echo -e "${YELLOW}Mode Gaming déjà inactif${NC}"
+            exit 0
+        fi
+        disable_gaming_mode
+        ;;
+    toggle)
+        toggle_gaming_mode
+        ;;
+    status)
+        status_gaming_mode
+        ;;
+    *)
+        echo "Usage: $0 {on|off|toggle|status}"
+        echo ""
+        echo "  on/enable  - Activer le mode gaming"
+        echo "  off/disable - Désactiver le mode gaming"
+        echo "  toggle     - Basculer entre on/off"
+        echo "  status     - Afficher l'état actuel"
+        exit 1
+        ;;
+esac
