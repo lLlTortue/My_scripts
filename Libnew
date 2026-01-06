@@ -7,9 +7,6 @@ else
 fi
 
 if [[ $lib_name == *".a" ]]; then
-    mkdir -p ${lib_name%.*}
-    cd ${lib_name%.*}
-
     echo $lib_name > .project_name.txt
 
     mkdir -p src

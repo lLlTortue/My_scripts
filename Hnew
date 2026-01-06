@@ -9,7 +9,7 @@ else
 fi
 
 echo "/*" > $1.h
-echo "** EPITECH PROJECT, 2024" >> $1.h
+echo "** EPITECH PROJECT, 2025" >> $1.h
 echo "** $project_name" >> $1.h
 echo "** File description:" >> $1.h
 echo "** $1.h" >> $1.h

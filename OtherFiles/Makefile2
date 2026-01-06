@@ -1,28 +1,21 @@
 SRC     := $(shell find src -name "*.c")
 BUILD_DIR := build
 OBJS    := $(SRC:%.c=$(BUILD_DIR)/%.o)
-
 CC = epiclang
-
 CFLAGS  := -Wall -Wextra -Werror -I./include -std=gnu17
 OFLAGS  := -I./include -Wall -Wextra -Werror -std=gnu17
-
 DEBUG   := 0
-
 ifeq ($(DEBUG), 1)
 	CFLAGS += -fsanitize=address
 	OFLAGS += -g3
 endif
-
 LIBS_DIR := libs
 LIBS_DIRS := $(shell [ -d $(LIBS_DIR) ] && find $(LIBS_DIR)/* \
 -maxdepth 0 -type d 2>/dev/null || echo "")
 LIBS    := $(wildcard $(LIBS_DIRS:%=%/*.a))
-
 LIB_TIMESTAMP := $(BUILD_DIR)/libs.timestamp
-
-LDFLAGS := $(addprefix -L, $(LIBS_DIRS))
-LDLIBS := $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS))))
+LDFLAGS := $(addprefix -L, $(LIBS_DIRS)) -L.
+LDLIBS := $(addprefix -l, $(patsubst lib%.a,%,$(notdir $(LIBS)))) -l$(NAME)
 
 all: $(NAME)
 
@@ -72,11 +65,11 @@ run: re
 	@if [ -f "main.c" ]; then \
 		if [ -f "lib$(NAME).a" ]; then \
 			$(eval LIBS    := $(wildcard $(LIBS_DIRS:%=%/*.a))) \
-			$(eval LDFLAGS := $(addprefix -L, $(LIBS_DIRS))) \
+			$(eval LDFLAGS := $(addprefix -L, $(LIBS_DIRS)) -L.) \
 			$(eval LDLIBS  := $(addprefix -l, \
 			    $(patsubst lib%.a,%,$(notdir $(LIBS))))) \
-			$(CC) main.c -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LDLIBS) \
-			    -L. -l$(NAME);\
+			$(CC) main.c -o $(NAME) $(CFLAGS) $(LDFLAGS) \
+			    -l$(NAME) $(LDLIBS); \
 			echo "Running $(NAME)..."; \
 			./$(NAME); \
 		else \
@@ -85,3 +78,5 @@ run: re
 	else \
 		echo "No main.c file found in the root directory."; \
 	fi;
+
+.PHONY: all clean fclean re run debug
