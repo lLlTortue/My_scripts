@@ -2,8 +2,8 @@ SRC     := $(shell find src -name "*.c")
 BUILD_DIR := build
 OBJS    := $(SRC:%.c=$(BUILD_DIR)/%.o)
 CC = epiclang
-CFLAGS  := -Wall -Wextra -Werror -I./include -std=gnu17
-OFLAGS  := -I./include -Wall -Wextra -Werror -std=gnu17
+CFLAGS  := -Wall -Wextra -Werror -I./include -I. -std=gnu17
+OFLAGS  := -I./include -I. -Wall -Wextra -Werror -std=gnu17
 DEBUG   := 0
 
 ifeq ($(G3), 1)
